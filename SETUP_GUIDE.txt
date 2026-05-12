@@ -1,0 +1,124 @@
+# Octane Labs Discord Bot — Mac Setup Guide
+# Read this once, then you're done forever.
+
+## WHAT YOU NEED BEFORE STARTING
+- Your bot token (from discord.com/developers)
+- Your Google Sheet ID (from the Sheet URL)
+- The credentials.json file (from Google Cloud — see Step 3)
+
+---
+
+## STEP 1 — Move the bot files to your computer
+
+1. Create a folder on your Desktop called: octane-bot
+2. Move these files into it:
+   - bot.py
+   - start_bot.command
+   - credentials.json (after you create it in Step 3)
+
+---
+
+## STEP 2 — Install dependencies
+
+Open Terminal (Cmd + Space → type Terminal → Enter)
+Run these commands one by one:
+
+    cd ~/Desktop/octane-bot
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install discord.py gspread google-auth
+
+You only do this ONCE. Never again.
+
+---
+
+## STEP 3 — Get Google Sheets credentials
+
+1. Go to: console.cloud.google.com
+2. Create a new project called "Octane Bot"
+3. Enable "Google Sheets API" and "Google Drive API"
+4. Go to: APIs & Services → Credentials → Create Credentials → Service Account
+5. Name it "octane-bot", click Done
+6. Click the service account → Keys tab → Add Key → JSON
+7. A file downloads — rename it credentials.json
+8. Move it into your octane-bot folder
+
+9. Open the JSON file — find the "client_email" value (looks like: octane-bot@...iam.gserviceaccount.com)
+10. Go to your Pipeline Google Sheet → Share → paste that email → give Editor access
+
+---
+
+## STEP 4 — Fill in your config in bot.py
+
+Open bot.py in TextEdit and replace these 4 values:
+
+    BOT_TOKEN       = "PASTE_YOUR_BOT_TOKEN_HERE"
+    SHEET_ID        = "PASTE_YOUR_GOOGLE_SHEET_ID_HERE"
+    OPS_CHANNEL_ID  = 000000000000000000   ← right-click #ops-internal → Copy Channel ID
+    SAMPLE_QUEUE_ID = 000000000000000000   ← right-click #sample-queue → Copy Channel ID
+
+To find your Sheet ID: open the Sheet in browser
+URL looks like: docs.google.com/spreadsheets/d/THIS_IS_YOUR_SHEET_ID/edit
+Copy the part between /d/ and /edit
+
+To get Channel IDs in Discord:
+- Go to Discord Settings → Advanced → turn on Developer Mode
+- Right-click any channel → Copy Channel ID
+
+---
+
+## STEP 5 — Make the startup script clickable
+
+Open Terminal, run:
+
+    chmod +x ~/Desktop/octane-bot/start_bot.command
+
+Done. You only do this once.
+
+---
+
+## EVERY WORKING DAY — Starting the bot
+
+1. Double-click start_bot.command
+2. A terminal window opens — you'll see "✅ Octane Labs Bot is online"
+3. That's it. Bot is running.
+
+## EVERY WORKING DAY — Stopping the bot
+
+1. Close the terminal window
+2. Bot goes offline
+
+---
+
+## TROUBLESHOOTING
+
+"command not found: python3"
+→ Download Python from python.org (free, takes 2 minutes)
+
+"Invalid token"
+→ Go back to discord.com/developers → Bot tab → Reset Token → paste new one in bot.py
+
+"gspread error" or Sheet not updating
+→ Check that you shared the Sheet with the service account email from credentials.json
+
+Slash commands not showing in Discord
+→ Wait up to 1 hour after first run for Discord to register them
+→ Or kick and re-invite the bot
+
+---
+
+## CHANNEL IDS TO COLLECT
+
+Before running for the first time, collect these and put them in bot.py:
+
+[ ] #ops-internal channel ID    → OPS_CHANNEL_ID
+[ ] #sample-queue channel ID    → SAMPLE_QUEUE_ID
+
+---
+
+## THAT'S IT
+
+Morning: double-click start_bot.command
+Evening: close the window
+
+No subscriptions. No cloud accounts. No monthly fees. Ever.

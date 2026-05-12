@@ -1,0 +1,139 @@
+================================================================================
+OCTANE LABS DISCORD BOT — CONVERSATION EXPORT
+Session Date: 2026-05-12
+================================================================================
+
+--------------------------------------------------------------------------------
+OVERVIEW — WHAT WAS BUILT
+--------------------------------------------------------------------------------
+
+A Discord automation bot for Octane Labs (discord.py 2.7.1, Python 3.14).
+Hosted on Replit (free tier). The bot handles:
+
+1. APPLICATION TICKETS
+   - Auto-creates private ticket channels when users apply
+   - Routes to CAT_APPLICATIONS category
+   - AI FAQ bot answers questions automatically
+
+2. SUPPORT TICKETS
+   - Same flow, routed to CAT_SUPPORT category
+   - AI answers FAQs, escalates to admin when confidence is low
+
+3. VIDEO REVIEW TICKETS
+   - Routed to CAT_VIDEO category
+   - AI does NOT respond in these channels
+
+4. FAQ AI BOT (Gemini 2.5 Flash)
+   - Loaded from faq.json (140 FAQs extracted from an xlsx file)
+   - Responds to questions in Application and Support ticket channels
+   - When confidence is low → pings admin and stops responding in that channel
+   - Once admin joins the thread → AI goes silent permanently for that channel
+
+5. /audit COMMAND
+   - Creator types: /audit <TikTok URL>
+   - Bot calls Google Apps Script backend → Gemini API scores the video
+   - Returns: score out of 100, tier (Good/Premium/Elite), breakdown, improvement tip
+   - Score 70+ = cleared for upload
+   - Score below 70 = bot explains what to fix
+
+6. /products COMMAND
+   - Posts product catalog cards (7 products) with embeds
+   - Products defined in products.py
+
+7. OPS ESCALATION
+   - When AI can't answer → posts embed pinging admin
+   - Admin ID hardcoded: <@1498307294017093712>
+
+--------------------------------------------------------------------------------
+KEY FILES
+--------------------------------------------------------------------------------
+
+/Users/macbookairm4/octane-bot/bot.py          — main bot (all features)
+/Users/macbookairm4/octane-bot/faq.json        — 140 FAQs (119KB)
+/Users/macbookairm4/octane-bot/products.py     — 7-product catalog
+/Users/macbookairm4/octane-bot/.env            — environment variables
+/Users/macbookairm4/octane-bot/start_bot.command — double-click launcher (Mac)
+
+Google Apps Script backend:
+https://script.google.com/macros/s/AKfycbwNw9fbGn1K8yhx8tMy3PUzv5t-1KFn5CY62G-9c_RNhWVTcihks9uhhBwPnT0ECAE/exec
+
+Audit web app (frontend):
+https://octaneaudit.netlify.app/
+
+--------------------------------------------------------------------------------
+ENVIRONMENT VARIABLES (.env / Replit Secrets)
+--------------------------------------------------------------------------------
+
+BOT_TOKEN          = Discord bot token
+SHEET_ID           = Google Sheet ID for tracking
+OPS_CHANNEL_ID     = 1502379335007469640
+SAMPLE_QUEUE_ID    = 1502379416796532866
+OPS_PING           = (should be blank or deleted — hardcoded fallback is used)
+GMV_SPRINT_STATUS  = Open | Paused | Waitlist
+CAT_APPLICATIONS   = Applications
+CAT_SUPPORT        = Support Tickets
+CAT_VIDEO          = Video Reviews
+
+--------------------------------------------------------------------------------
+KNOWN ISSUES & FIXES
+--------------------------------------------------------------------------------
+
+ISSUE: Bot pings @here instead of admin
+CAUSE: OPS_PING secret in Replit was set to empty string, overriding hardcoded default
+FIX:   Delete the OPS_PING secret in Replit Secrets panel (or set to <@1498307294017093712>)
+
+ISSUE: on_message category returned None
+CAUSE: Discord cache lag on channel objects
+FIX:   Three-level fallback: cached object → fetch_channel API → channel name pattern match
+
+ISSUE: Bot not responding to FAQ questions
+CAUSE: Replit was running a Node.js server, not the Python bot
+FIX:   Run `python3 bot.py` in shell; set .replit run command accordingly
+
+--------------------------------------------------------------------------------
+HOW TO UPDATE BOT ON REPLIT (no AI credits needed)
+--------------------------------------------------------------------------------
+
+1. Open Replit → your bot project
+2. Left sidebar → find discord-bot/bot.py
+3. Click the file to open it
+4. Select All (Cmd+A) → Delete → Paste new code
+5. File auto-saves
+6. Click the Run button (or restart the shell)
+
+--------------------------------------------------------------------------------
+DISCORD ANNOUNCEMENT — /audit COMMAND (ready to paste)
+--------------------------------------------------------------------------------
+
+📣 **NEW: Video Quality Check — `/audit`**
+
+Hey creators! We just launched a built-in tool to help you know if your video is ready before you submit it.
+
+**How to use it:**
+Type `/audit` + your TikTok link in your ticket channel. The bot scores your video in about 30–60 seconds.
+
+**What you get:**
+- A score out of 100
+- A tier rating (Good / Premium / Elite)
+- A breakdown of what's working
+- A specific tip if your score needs improvement
+
+**The rule is simple:**
+✅ **70 or above** → your video is cleared for upload
+❌ **Below 70** → the bot tells you exactly what to fix. Improve it and run `/audit` again anytime.
+
+This is the same scoring system we use internally. No more guessing whether your content is ready — you'll know instantly.
+
+Try it now in your ticket channel. 🎬
+
+--------------------------------------------------------------------------------
+PENDING TASKS
+--------------------------------------------------------------------------------
+
+[ ] Fix OPS_PING in Replit Secrets (delete it or set to <@1498307294017093712>)
+[ ] Confirm latest bot.py is pasted into Replit
+[ ] Post /audit announcement in creator channel
+
+--------------------------------------------------------------------------------
+END OF EXPORT
+================================================================================
