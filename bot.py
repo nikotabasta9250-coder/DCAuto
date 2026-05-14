@@ -450,7 +450,12 @@ async def gemini_answer(user_question: str, creator_context: str = "") -> str | 
     if not FAQ_KB or not GEMINI_API_KEY:
         print("[FAQ] Gemini skipped: no FAQ_KB or no API key")
         return None
-    # Change 1: Use stable model name
+
+    # Handle simple greetings without hitting Gemini
+    greetings = {"hello", "hi", "hey", "sup", "helo", "hii", "heyy", "yo", "good morning", "good afternoon", "good evening"}
+    if user_question.strip().lower().rstrip("!.?") in greetings:
+        return "Hey! 👋 How can I help you today? Feel free to ask any questions about your application, samples, or the Octane Labs programs."
+
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
@@ -469,7 +474,6 @@ async def gemini_answer(user_question: str, creator_context: str = "") -> str | 
             resp = await s.post(url, json=payload,
                                 timeout=aiohttp.ClientTimeout(total=30))
             data = await resp.json(content_type=None)
-        # Log full response for debugging
         if resp.status != 200:
             print(f"[FAQ] Gemini API error {resp.status}: {data}")
             return None
@@ -529,10 +533,14 @@ async def make_ticket_channel(guild, user, category_name: str, channel_name: str
         user:               discord.PermissionOverwrite(read_messages=True, send_messages=True),
         guild.me:           discord.PermissionOverwrite(read_messages=True, send_messages=True),
     }
-    # Prefer category ID lookup if provided (more reliable than name)
+    # Use bot.get_channel for ID lookup (works for categories)
     category = None
     if category_id:
-        category = guild.get_channel(category_id)
+        category = bot.get_channel(category_id)
+        if category:
+            print(f"✅ Category found by ID: {category.name}")
+        else:
+            print(f"⚠️ Category ID {category_id} not found, falling back to name lookup")
     if not category:
         category = discord.utils.get(guild.categories, name=category_name)
     return await guild.create_text_channel(
@@ -769,19 +777,26 @@ class RetainerModal(discord.ui.Modal):
             username = user.name
             brand    = self._brand
 
-            # Change 3: Auto-reject if GMV < $10,000
+            # Auto-reject if GMV < $10,000 — create private channel first, send rejection there
             gmv_val = parse_gmv(str(self.gmv))
             if gmv_val > 0 and gmv_val < 10000:
+                tnum    = await _sheet(_next_ticket_num)
+                ch_name = f"🟡│app-{tnum:03d}-{username}"
+                channel = await make_ticket_channel(
+                    interaction.guild, user, CAT_APPLICATIONS, ch_name,
+                    category_id=RETAINER_CATEGORY_ID
+                )
+                await channel.send(MACRO_GMV_REJECTION.format(username=f"@{username}", brand=brand))
                 await interaction.followup.send(
-                    MACRO_GMV_REJECTION.format(username=f"@{username}", brand=brand),
-                    ephemeral=False
+                    f"We've reviewed your application. Please check {channel.mention} for our response.",
+                    ephemeral=True
                 )
                 return
 
             tnum    = await _sheet(_next_ticket_num)
             ch_name = f"🟡│app-{tnum:03d}-{username}"
 
-            # Change 5: Use RETAINER_CATEGORY_ID for retainer tickets
+            # Use RETAINER_CATEGORY_ID for retainer tickets
             channel = await make_ticket_channel(
                 interaction.guild, user, CAT_APPLICATIONS, ch_name,
                 category_id=RETAINER_CATEGORY_ID
