@@ -84,11 +84,13 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
+# Change 2: Added Coulée Coffee, removed MDRN and Hover Cover from forms
 BRANDS = [
     "EZ Outlet", "Sleek Socket", "Spicy Shelf",
-    "Spice Spinner", "Emily C", "MDRN", "Hover Cover",
+    "Spice Spinner", "Emily C", "Coulée Coffee",
 ]
 
+# Change 2: Growi links — only brands that have them
 GROWI_LINKS = {
     "EZ Outlet":     "https://www.growi.io/o/ez-outlet/c/33783?language=en&method=oauth",
     "Sleek Socket":  "https://www.growi.io/o/sleek-socket/c/33786?language=en&method=oauth",
@@ -97,6 +99,45 @@ GROWI_LINKS = {
     "Emily C":       "https://www.growi.io/o/emily-c-necklace/c/33784?language=en&method=oauth",
     "Coulée Coffee": "https://www.growi.io/o/ez-outlet/c/33783?language=en&method=oauth",
 }
+
+# Change 5: Retainer Applications category ID
+RETAINER_CATEGORY_ID = 1502371063223554096
+
+# Change 3: GMV parser — handles $10,000 / $10.000 / 10000 / 10,000 / 10.000 etc.
+def parse_gmv(raw: str) -> float:
+    """Parse GMV string in any common format to a float."""
+    s = raw.strip().replace("$", "").replace(" ", "")
+    # Handle European decimal notation: if dot comes before comma, it's a thousand separator
+    # e.g. 10.000 → 10000, but 10.5 → 10.5
+    if "." in s and "," in s:
+        # both present — comma is decimal separator in some locales, dot in others
+        # assume last separator is decimal
+        if s.rfind(".") > s.rfind(","):
+            # dot is decimal: remove commas
+            s = s.replace(",", "")
+        else:
+            # comma is decimal: remove dots, replace comma with dot
+            s = s.replace(".", "").replace(",", ".")
+    elif "." in s:
+        # only dot — could be thousand separator (10.000) or decimal (10.5)
+        parts = s.split(".")
+        if len(parts) == 2 and len(parts[1]) == 3:
+            # e.g. 10.000 — treat as thousand separator
+            s = s.replace(".", "")
+        # else treat as decimal (10.5)
+    elif "," in s:
+        # only comma — could be thousand separator (10,000) or decimal (10,5)
+        parts = s.split(",")
+        if len(parts) == 2 and len(parts[1]) == 3:
+            # e.g. 10,000 — thousand separator
+            s = s.replace(",", "")
+        else:
+            # decimal comma
+            s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
 
 # ─── MACROS ────────────────────────────────────────────────
 MACRO_M01 = """👋 Hey {username}! Thanks for applying to Octane Labs.
@@ -155,6 +196,67 @@ MACRO_INACTIVITY_WARN = """⚠️ Hey {username}! We noticed this ticket has bee
 If you still need help or want to continue your application, please reply here within **2 days** — otherwise we'll close this ticket automatically.
 
 No worries if life got busy — you can always open a new ticket in `#start-here`! 🙌"""
+
+# Change 4: Additional macros
+MACRO_GMV_REJECTION = """Hey {username}! Thank you so much for your interest in the {brand} Retainer Program. 🙏
+
+After reviewing your application, we're unable to move forward at this time. Our retainer program requires a minimum of **$10,000 in GMV** over the last 30 days.
+
+We genuinely appreciate your enthusiasm and encourage you to reapply once your metrics have grown. In the meantime, you're welcome to explore our **Sample Program** or **GMV Sprint** if you meet those requirements.
+
+Best of luck — we hope to work with you in the future! 🚀"""
+
+MACRO_CONTENT_REJECTION = """Hey {username}! Thank you for applying for the {brand} {program} — we genuinely appreciate your interest. 🙏
+
+After reviewing your content more closely, we don't feel it's the right fit at this time. Here's what we look for:
+• Strong scroll-stopping hook in the first 1–2 seconds
+• Dynamic visuals with movement and variety
+• Clear product demonstration
+• Benefit-driven explanation
+• Relatable problem-to-solution framing
+• CTA with urgency or a clear action
+
+This decision isn't personal — we encourage you to keep creating and reapply when you feel ready. Good luck! 🌟"""
+
+MACRO_RETAINER_APPROVED = """Hey {username}! 🎉 Exciting news — you've been approved for the **{brand} Retainer Program!**
+
+Here are your next steps:
+1. Review your retainer brief in the portal link shared above
+2. Confirm you've read and understood the brief by replying here with a short confirmation
+3. Begin posting within the agreed timeframe
+
+Your retainer contract and payment details are managed through the portal. Welcome to the team! 🙌"""
+
+MACRO_MISSING_INFO = """Hey {username}! Just following up — we still need a bit more info to move your application forward.
+
+Could you please provide the following:
+• Your TikTok handle (if not already shared)
+• Your GMV over the last 30 days
+• Confirmation that you've applied in the Affiliate Center (Y/N)
+
+We'll need to close this ticket in **3 days** if we don't hear back. Thanks so much! 🙏"""
+
+MACRO_FINAL_FOLLOWUP = """Hey {username}! This is our final follow-up before we close this ticket.
+
+If you'd still like to move forward, please reply here by **tomorrow** — otherwise we'll archive this chat. You're always welcome to reapply in the future! 🙌"""
+
+MACRO_SAMPLE_REJECTION = """Hey {username}! Thank you for your interest in a sample for {brand}. 🙏
+
+After reviewing your profile, we're unable to fulfill this sample request at this time. Our sample program requires a minimum of **$5,000 in GMV** and a **50%+ post fulfillment rate**.
+
+We hope to work with you as your channel grows. Best of luck! 🚀"""
+
+MACRO_PAYOUT_QUESTION = """Hey {username}! Thanks for reaching out about your payout for {brand}. 💸
+
+All retainer payments are processed at the end of your 30-day term once all deliverables have been verified. Here's the current status:
+
+**Growi Status:** {growi_status}
+
+If you have further questions or believe there's an issue with your payout, our team will follow up shortly. We appreciate your patience! 🙌"""
+
+MACRO_PRODUCT_ROUTING = """Hey {username}! Thanks for reaching out 🙌 — it looks like you might be in the wrong spot.
+
+For **{correct_brand}**, please head to the correct channel and open a ticket there. If you're unsure which program applies to you, let us know your TikTok handle and what you're interested in and we'll point you in the right direction! 🚀"""
 
 # ─── GOOGLE SHEETS LAYER ───────────────────────────────────
 _sheet_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="gspread")
@@ -346,10 +448,12 @@ def _get_faq_prompt() -> str:
 async def gemini_answer(user_question: str, creator_context: str = "") -> str | None:
     """Returns the bot's answer, or None if it should stay silent (escalate)."""
     if not FAQ_KB or not GEMINI_API_KEY:
+        print("[FAQ] Gemini skipped: no FAQ_KB or no API key")
         return None
+    # Change 1: Use stable model name
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+        f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     )
     system = _get_faq_prompt()
     if creator_context:
@@ -365,6 +469,10 @@ async def gemini_answer(user_question: str, creator_context: str = "") -> str | 
             resp = await s.post(url, json=payload,
                                 timeout=aiohttp.ClientTimeout(total=30))
             data = await resp.json(content_type=None)
+        # Log full response for debugging
+        if resp.status != 200:
+            print(f"[FAQ] Gemini API error {resp.status}: {data}")
+            return None
         text = (
             data.get("candidates", [{}])[0]
                 .get("content", {})
@@ -372,6 +480,7 @@ async def gemini_answer(user_question: str, creator_context: str = "") -> str | 
                 .get("text", "")
                 .strip()
         )
+        print(f"[FAQ] Gemini response: {text[:80]}")
     except Exception as e:
         print(f"Gemini chat error: {e}")
         return None
@@ -414,13 +523,18 @@ async def safe_defer(interaction: discord.Interaction) -> bool:
         print(f"⚠️ Interaction expired for {interaction.user} — discarding")
         return False
 
-async def make_ticket_channel(guild, user, category_name: str, channel_name: str):
+async def make_ticket_channel(guild, user, category_name: str, channel_name: str, category_id: int = None):
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(read_messages=False),
         user:               discord.PermissionOverwrite(read_messages=True, send_messages=True),
         guild.me:           discord.PermissionOverwrite(read_messages=True, send_messages=True),
     }
-    category = discord.utils.get(guild.categories, name=category_name)
+    # Prefer category ID lookup if provided (more reliable than name)
+    category = None
+    if category_id:
+        category = guild.get_channel(category_id)
+    if not category:
+        category = discord.utils.get(guild.categories, name=category_name)
     return await guild.create_text_channel(
         name=channel_name[:100], overwrites=overwrites, category=category
     )
@@ -654,10 +768,24 @@ class RetainerModal(discord.ui.Modal):
             user     = interaction.user
             username = user.name
             brand    = self._brand
-            tnum     = await _sheet(_next_ticket_num)
-            ch_name  = f"🟡│app-{tnum:03d}-{username}"
 
-            channel = await make_ticket_channel(interaction.guild, user, CAT_APPLICATIONS, ch_name)
+            # Change 3: Auto-reject if GMV < $10,000
+            gmv_val = parse_gmv(str(self.gmv))
+            if gmv_val > 0 and gmv_val < 10000:
+                await interaction.followup.send(
+                    MACRO_GMV_REJECTION.format(username=f"@{username}", brand=brand),
+                    ephemeral=False
+                )
+                return
+
+            tnum    = await _sheet(_next_ticket_num)
+            ch_name = f"🟡│app-{tnum:03d}-{username}"
+
+            # Change 5: Use RETAINER_CATEGORY_ID for retainer tickets
+            channel = await make_ticket_channel(
+                interaction.guild, user, CAT_APPLICATIONS, ch_name,
+                category_id=RETAINER_CATEGORY_ID
+            )
 
             await channel.send(MACRO_M01.format(
                 username=f"@{username}", tiktok=str(self.tiktok), program="Retainer",
