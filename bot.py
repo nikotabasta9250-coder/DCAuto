@@ -32,7 +32,16 @@ OPS_PING             = os.environ.get("OPS_PING", "<@1498307294017093712>")
 CAT_APPLICATIONS     = os.environ.get("CAT_APPLICATIONS", "Applications")
 CAT_SUPPORT          = os.environ.get("CAT_SUPPORT", "Support Tickets")
 CAT_VIDEO            = os.environ.get("CAT_VIDEO", "Video Reviews")
-CREDS_FILE           = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
+import json, tempfile
+_CREDS_JSON_ENV = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+if _CREDS_JSON_ENV:
+    _creds_data = json.loads(_CREDS_JSON_ENV)
+    _tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+    json.dump(_creds_data, _tmp)
+    _tmp.close()
+    CREDS_FILE = _tmp.name
+else:
+    CREDS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
 
 # Transcript channel — set TRANSCRIPT_CHANNEL_ID in secrets, or transcripts go to ops channel
 _transcript_env      = os.environ.get("TRANSCRIPT_CHANNEL_ID", "0")
