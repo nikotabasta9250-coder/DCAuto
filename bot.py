@@ -89,6 +89,15 @@ BRANDS = [
     "Spice Spinner", "Emily C", "MDRN", "Hover Cover",
 ]
 
+GROWI_LINKS = {
+    "EZ Outlet":     "https://www.growi.io/o/ez-outlet/c/33783?language=en&method=oauth",
+    "Sleek Socket":  "https://www.growi.io/o/sleek-socket/c/33786?language=en&method=oauth",
+    "Spicy Shelf":   "https://www.growi.io/o/spicy-shelf/c/33788?language=en&method=oauth",
+    "Spice Spinner": "https://www.growi.io/o/spice-spinner/c/33787?language=en&method=oauth",
+    "Emily C":       "https://www.growi.io/o/emily-c-necklace/c/33784?language=en&method=oauth",
+    "Coulée Coffee": "https://www.growi.io/o/ez-outlet/c/33783?language=en&method=oauth",
+}
+
 # ─── MACROS ────────────────────────────────────────────────
 MACRO_M01 = """👋 Hey {username}! Thanks for applying to Octane Labs.
 
@@ -655,6 +664,14 @@ class RetainerModal(discord.ui.Modal):
                 brand=brand, app_submitted=str(self.app_sub), gmv=str(self.gmv),
                 notes=str(self.notes) or "None"
             ))
+
+            growi_link = GROWI_LINKS.get(brand)
+            if growi_link:
+                await channel.send(
+                    f"To complete your retainer application, please click the link below and sign up through our partner portal. "
+                    f"Once you have submitted your application, drop a message here and our team will begin reviewing your profile within 1–2 business days.\n\n"
+                    f"{growi_link}"
+                )
 
             await send_ops_alert("Retainer", username, str(self.tiktok), brand, str(self.gmv), channel)
 
