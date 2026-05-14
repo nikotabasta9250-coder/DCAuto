@@ -33,9 +33,21 @@ CAT_APPLICATIONS     = os.environ.get("CAT_APPLICATIONS", "Applications")
 CAT_SUPPORT          = os.environ.get("CAT_SUPPORT", "Support Tickets")
 CAT_VIDEO            = os.environ.get("CAT_VIDEO", "Video Reviews")
 import json, tempfile
-_CREDS_JSON_ENV = os.environ.get("GOOGLE_CREDENTIALS_JSON")
-if _CREDS_JSON_ENV:
-    _creds_data = json.loads(_CREDS_JSON_ENV)
+_private_key = os.environ.get("GOOGLE_PRIVATE_KEY", "")
+if _private_key:
+    _creds_data = {
+        "type": "service_account",
+        "project_id": os.environ.get("GOOGLE_PROJECT_ID", ""),
+        "private_key_id": os.environ.get("GOOGLE_PRIVATE_KEY_ID", ""),
+        "private_key": _private_key.replace("\\n", "\n"),
+        "client_email": os.environ.get("GOOGLE_CLIENT_EMAIL", ""),
+        "client_id": "",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "",
+        "universe_domain": "googleapis.com"
+    }
     _tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
     json.dump(_creds_data, _tmp)
     _tmp.close()
