@@ -32,28 +32,51 @@ OPS_PING             = os.environ.get("OPS_PING", "<@1498307294017093712>")
 CAT_APPLICATIONS     = os.environ.get("CAT_APPLICATIONS", "Applications")
 CAT_SUPPORT          = os.environ.get("CAT_SUPPORT", "Support Tickets")
 CAT_VIDEO            = os.environ.get("CAT_VIDEO", "Video Reviews")
-import json, tempfile
-_private_key = os.environ.get("GOOGLE_PRIVATE_KEY", "")
-if _private_key:
-    _creds_data = {
-        "type": "service_account",
-        "project_id": os.environ.get("GOOGLE_PROJECT_ID", ""),
-        "private_key_id": os.environ.get("GOOGLE_PRIVATE_KEY_ID", ""),
-        "private_key": _private_key.replace("\\n", "\n"),
-        "client_email": os.environ.get("GOOGLE_CLIENT_EMAIL", ""),
-        "client_id": "",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "",
-        "universe_domain": "googleapis.com"
-    }
-    _tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-    json.dump(_creds_data, _tmp)
-    _tmp.close()
-    CREDS_FILE = _tmp.name
-else:
-    CREDS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
+
+def _clean_google_private_key(raw_key: str) -> str:
+    """Normalize a service-account key copied from JSON into an env var."""
+    key = raw_key.strip()
+    if key.endswith(","):
+        key = key[:-1].strip()
+    if len(key) >= 2 and key[0] == key[-1] and key[0] in {"'", '"'}:
+        key = key[1:-1]
+    return key.replace("\\n", "\n")
+
+def _load_google_credentials_from_env():
+    raw_json = (
+        os.environ.get("GOOGLE_CREDENTIALS_JSON")
+        or os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+        or ""
+    ).strip()
+    if raw_json:
+        try:
+            data = json.loads(raw_json)
+            if isinstance(data, str):
+                data = json.loads(data)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("GOOGLE_CREDENTIALS_JSON is not valid service-account JSON") from exc
+        data["private_key"] = _clean_google_private_key(data.get("private_key", ""))
+        return data
+
+    private_key = _clean_google_private_key(os.environ.get("GOOGLE_PRIVATE_KEY", ""))
+    if private_key:
+        return {
+            "type": "service_account",
+            "project_id": os.environ.get("GOOGLE_PROJECT_ID", ""),
+            "private_key_id": os.environ.get("GOOGLE_PRIVATE_KEY_ID", ""),
+            "private_key": private_key,
+            "client_email": os.environ.get("GOOGLE_CLIENT_EMAIL", ""),
+            "client_id": "",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": "",
+            "universe_domain": "googleapis.com"
+        }
+    return None
+
+ENV_GOOGLE_CREDENTIALS = _load_google_credentials_from_env()
+CREDS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
 
 # Transcript channel — set TRANSCRIPT_CHANNEL_ID in secrets, or transcripts go to ops channel
 _transcript_env      = os.environ.get("TRANSCRIPT_CHANNEL_ID", "0")
@@ -265,7 +288,10 @@ _sheet_lock     = threading.Lock()
 
 def _connect_sheet():
     global _sheet_obj
-    creds      = Credentials.from_service_account_file(CREDS_FILE, scopes=SCOPES)
+    if ENV_GOOGLE_CREDENTIALS:
+        creds  = Credentials.from_service_account_info(ENV_GOOGLE_CREDENTIALS, scopes=SCOPES)
+    else:
+        creds  = Credentials.from_service_account_file(CREDS_FILE, scopes=SCOPES)
     client     = gspread.Client(auth=creds)
     _sheet_obj = client.open_by_key(SHEET_ID).worksheet("Pipeline")
     print("✅ Google Sheets connected")
