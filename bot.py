@@ -9,6 +9,7 @@ import os
 import io
 import time
 import json
+import re
 import concurrent.futures
 import threading
 import aiohttp
@@ -1545,7 +1546,24 @@ async def before_followup():
 
 
 # ─── EVENTS ────────────────────────────────────────────────
-FAQ_BOT_CATEGORIES = {CAT_APPLICATIONS, CAT_SUPPORT}  # NOT video review
+CAT_RETAINER_APPLICATIONS = os.environ.get("CAT_RETAINER_APPLICATIONS", "Retainer Applications")
+FAQ_BOT_CATEGORY_NAMES = {CAT_APPLICATIONS, CAT_SUPPORT, CAT_RETAINER_APPLICATIONS}  # NOT video review
+FAQ_BOT_CATEGORY_IDS = {RETAINER_CATEGORY_ID}
+
+def _normalize_category_name(name: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", name.lower())).strip()
+
+def _faq_category_allowed(message: discord.Message, category_name: str) -> bool:
+    category_id = getattr(message.channel, "category_id", None)
+    if category_id in FAQ_BOT_CATEGORY_IDS:
+        return True
+
+    normalized = _normalize_category_name(category_name)
+    for allowed_name in FAQ_BOT_CATEGORY_NAMES:
+        allowed = _normalize_category_name(allowed_name)
+        if normalized == allowed or normalized.startswith(f"{allowed} "):
+            return True
+    return False
 
 # Channels where ops has taken over — bot stays silent here until ticket closes.
 # In-memory only; clears on restart, which is fine because ops will just re-engage.
@@ -1586,8 +1604,8 @@ async def on_message(message: discord.Message):
     if category_name is None:
         print(f"[FAQ] skip: could not resolve category for #{message.channel.name}")
         return
-    if category_name not in FAQ_BOT_CATEGORIES:
-        print(f"[FAQ] skip: category '{category_name}' not in {FAQ_BOT_CATEGORIES}")
+    if not _faq_category_allowed(message, category_name):
+        print(f"[FAQ] skip: category '{category_name}' not in {FAQ_BOT_CATEGORY_NAMES}")
         return
     if message.channel.name.startswith("🔴"):
         print(f"[FAQ] skip: closed channel #{message.channel.name}")
